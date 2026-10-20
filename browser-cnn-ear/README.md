@@ -6,6 +6,12 @@
 
 ## 실행
 
+**[브라우저에서 바로 실행하기](https://spacegaeguri.github.io/Drowsiness-Detection-System/browser-cnn-ear/)**
+
+링크를 열어 모델 상태가 `READY`가 되면 `Start Camera`를 누르고 카메라 권한을 허용합니다. 별도 설치가 필요 없습니다. GitHub Pages는 `main` 브랜치의 저장소 루트를 배포하며, 앞으로 이 폴더 변경을 `main`에 올리면 사이트에도 반영됩니다.
+
+### 로컬 실행
+
 저장소 루트에서 정적 서버를 실행합니다. Python은 개발용 파일 서버 역할만 하며 추론 서버가 아닙니다.
 
 ```bash
@@ -14,7 +20,7 @@ python3 -m http.server 8000 --bind 127.0.0.1
 
 `http://localhost:8000/browser-cnn-ear/`를 열고 `READY`를 확인한 뒤 `Start Camera`를 누릅니다. 카메라와 경고음은 버튼 클릭 이후 시작합니다. 종료하려면 탭을 닫거나 브라우저의 카메라 권한을 중지합니다.
 
-HTTPS 정적 호스팅에도 폴더째 올릴 수 있습니다. 모델 경로는 `app.js` 위치를 기준으로 계산하므로 저장소명이나 하위 경로에 의존하지 않습니다. GitHub Pages 설정은 이 추가 작업에 포함하지 않았습니다.
+HTTPS 정적 호스팅에도 폴더째 올릴 수 있습니다. 모델 경로는 `app.js` 위치를 기준으로 계산하므로 저장소명이나 하위 경로에 의존하지 않습니다. GitHub Pages는 2026-10-21에 활성화했습니다.
 
 - 카메라는 HTTPS 또는 localhost 보안 컨텍스트가 필요합니다. `file://`로 직접 열지 마세요.
 - TensorFlow.js와 MediaPipe JavaScript/WASM은 CDN에서 내려받으므로 처음 로드할 때 인터넷이 필요합니다.
