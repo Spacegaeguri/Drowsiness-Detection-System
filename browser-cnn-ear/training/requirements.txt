@@ -1,0 +1,4 @@
+# Optional training/evaluation environment. The web demo needs none of these.
+tensorflow
+numpy
+scikit-learn

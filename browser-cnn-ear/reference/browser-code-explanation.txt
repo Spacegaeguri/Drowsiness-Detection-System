@@ -1,0 +1,564 @@
+코드 설명
+
+이 코드는 웹캠을 이용하여 사용자의 눈 상태를 실시간으로 분석하고, 일정 시간 이상 양쪽 눈이 감겨 있으면 졸음 상태로 판단하여 경고음을 발생시키는 웹 기반 졸음 감지 프로그램이다.
+
+전체 시스템은 index.html과 app.js로 구성되어 있다.
+
+index.html은 웹페이지의 기본 화면을 구성하고, app.js는 실제 AI 모델 로딩, 얼굴 및 눈 검출, 눈 상태 판정, 졸음 판단, 경고음 발생 등의 핵심 기능을 수행한다.
+
+
+index.html 설명
+
+index.html은 웹페이지 화면을 구성하는 파일이다.
+
+화면에는 다음 요소가 포함되어 있다.
+
+Driver Drowsiness Detection 제목
+
+실시간 눈 상태 분석 안내 문구
+
+Start Camera 버튼
+
+웹캠 영상을 보여주는 video 영역
+
+분석 결과를 영상 위에 표시하는 canvas 영역
+
+READY, AWAKE, SLEEPING 등의 상태를 표시하는 영역
+
+추가 정보를 출력하는 info 영역
+
+CSS를 이용하여 어두운 배경과 흰색 글씨를 사용하고, 영상과 상태 정보를 화면 중앙에 표시하도록 구성하였다.
+
+video 태그는 실제 웹캠 영상을 출력하는 역할을 한다.
+
+canvas 태그는 video 위에 겹쳐 배치되며, 검출된 눈 위치의 사각형과 OPEN, CLOSED 상태, EAR 값을 표시하는 데 사용된다.
+
+index.html에서는 TensorFlow.js 라이브러리를 CDN 방식으로 불러온다.
+
+또한 app.js를 JavaScript 모듈로 불러와 실제 졸음 감지 기능을 실행한다.
+
+
+app.js 설명
+
+app.js는 졸음 감지 시스템의 핵심 기능을 담당하는 JavaScript 파일이다.
+
+주요 기능은 다음과 같다.
+
+TensorFlow.js 모델 로딩
+
+MediaPipe Face Landmarker 로딩
+
+웹캠 실행
+
+얼굴 랜드마크 검출
+
+좌우 눈 위치 추출
+
+EAR 계산
+
+CNN 모델을 이용한 눈 Open / Closed 분석
+
+CNN과 EAR 결과 결합
+
+최근 여러 프레임 결과를 이용한 오검출 감소
+
+눈 감김 시간 측정
+
+졸음 상태 판단
+
+경고음 발생 및 종료
+
+
+MediaPipe Face Landmarker 사용
+
+코드에서는 MediaPipe Tasks Vision의 FaceLandmarker와 FilesetResolver를 사용한다.
+
+FaceLandmarker는 웹캠 영상에서 얼굴의 주요 위치를 랜드마크 좌표로 검출한다.
+
+눈, 코, 입 등의 위치를 여러 개의 좌표로 제공하기 때문에 얼굴 전체를 단순히 사각형으로 검출하는 방식보다 눈의 정확한 위치를 계산하기에 적합하다.
+
+FilesetResolver는 MediaPipe가 브라우저에서 동작하기 위해 필요한 WASM 파일을 불러오는 역할을 한다.
+
+Face Landmarker는 VIDEO 모드로 설정되어 있어 웹캠 영상의 각 프레임을 연속적으로 분석한다.
+
+분석 대상 얼굴 수는 1명으로 설정하였다.
+
+
+눈 랜드마크 설정
+
+코드에서는 MediaPipe에서 제공하는 얼굴 랜드마크 번호 중 눈 주변의 좌표를 사용한다.
+
+왼쪽 눈은 다음 번호를 사용한다.
+
+33, 133, 159, 145, 158, 153
+
+오른쪽 눈은 다음 번호를 사용한다.
+
+362, 263, 386, 374, 385, 380
+
+이 좌표들은 눈의 가로 길이와 세로 길이를 계산하고, 실제 눈 이미지 영역을 잘라내는 데 사용된다.
+
+
+주요 설정값
+
+IMG_SIZE는 64로 설정되어 있다.
+
+학습된 CNN 모델의 입력 이미지 크기가 64×64이기 때문에 웹캠에서 잘라낸 눈 이미지도 64×64 크기로 변환한다.
+
+CNN_OPEN_THRESHOLD는 0.55로 설정되어 있다.
+
+CNN 모델의 출력값이 0.55 이상일 경우 기본적으로 눈이 열린 상태인 OPEN으로 판단한다.
+
+EAR_CLOSED_THRESHOLD는 0.18로 설정되어 있다.
+
+EAR 값이 이 값보다 낮으면 눈이 감긴 가능성이 높은 것으로 판단한다.
+
+SLEEP_SECONDS는 2.0으로 설정되어 있다.
+
+양쪽 눈이 모두 감긴 상태가 2초 이상 지속되면 졸음 상태인 SLEEPING으로 판단한다.
+
+SMOOTH_FRAMES는 5로 설정되어 있다.
+
+최근 5개 프레임의 눈 상태를 사용하여 순간적인 오검출을 줄인다.
+
+
+모델 로딩
+
+웹페이지가 실행되면 먼저 TensorFlow.js와 MediaPipe 모델을 로딩한다.
+
+모델이 로딩되는 동안 Start Camera 버튼은 비활성화되며 버튼에는 Loading...이 표시된다.
+
+TensorFlow.js에서는 다음 모델을 불러온다.
+
+model/model.json
+
+model.json에는 CNN 모델의 구조가 저장되어 있으며, 실제 학습된 가중치는 group1-shard1of1.bin 파일에 저장되어 있다.
+
+TensorFlow.js는 두 파일을 이용하여 웹브라우저에서 CNN 모델을 실행한다.
+
+MediaPipe는 face_landmarker.task 파일을 이용하여 Face Landmarker 모델을 생성한다.
+
+두 모델이 모두 정상적으로 로딩되면 modelsReady 값을 true로 변경하고 Start Camera 버튼을 활성화한다.
+
+화면 상태는 READY로 표시된다.
+
+모델 로딩에 실패하면 MODEL ERROR 상태를 표시하고 카메라 버튼을 사용할 수 없도록 한다.
+
+
+카메라 실행
+
+사용자가 Start Camera 버튼을 클릭하면 startCamera() 함수가 실행된다.
+
+navigator.mediaDevices.getUserMedia()를 이용하여 브라우저에서 웹캠 사용 권한을 요청한다.
+
+video 설정의 facingMode를 user로 설정하여 사용자를 향한 카메라를 사용하도록 한다.
+
+카메라가 정상적으로 실행되면 video 태그에 웹캠 영상을 연결한다.
+
+그 후 processFrame() 함수를 실행하여 실시간 분석을 시작한다.
+
+사진이나 영상을 파일로 저장하는 코드는 포함되어 있지 않으며, 웹캠 영상은 실시간 분석에만 사용된다.
+
+
+두 점 사이 거리 계산
+
+distance() 함수는 두 얼굴 랜드마크 좌표 사이의 거리를 계산한다.
+
+x 좌표와 y 좌표의 차이를 이용하여 유클리드 거리를 계산한다.
+
+이 거리는 EAR 계산에 사용된다.
+
+
+EAR 계산
+
+EAR은 Eye Aspect Ratio의 약자로 눈의 가로 길이에 대한 세로 길이의 비율을 이용하여 눈이 열려 있는지 감겨 있는지를 판단하는 방법이다.
+
+calculateEAR() 함수에서는 눈의 가로 방향 랜드마크 두 점과 세로 방향 랜드마크 네 점을 이용한다.
+
+눈을 크게 뜨고 있을 때는 세로 길이가 커지기 때문에 EAR 값도 커진다.
+
+눈을 감으면 세로 길이가 짧아져 EAR 값이 작아진다.
+
+따라서 EAR 값은 CNN 모델 결과를 보조하는 판단 기준으로 사용된다.
+
+
+눈 영역 추출
+
+getEyeBox() 함수는 MediaPipe에서 검출한 눈 랜드마크 좌표를 이용하여 실제 웹캠 영상에서 눈 부분의 사각형 영역을 계산한다.
+
+눈 랜드마크의 최소 x, 최대 x, 최소 y, 최대 y 값을 이용하여 기본 영역을 설정한다.
+
+눈 주변이 너무 좁게 잘리지 않도록 가로와 세로 방향으로 추가 여백도 적용한다.
+
+가로 방향 여백은 눈 너비의 약 35%를 사용한다.
+
+세로 방향 여백은 눈 높이의 약 120%를 사용한다.
+
+이렇게 계산된 영역이 CNN 모델에 입력되는 실제 눈 이미지 영역이 된다.
+
+
+CNN 눈 상태 분석
+
+predictEye() 함수는 웹캠 영상에서 계산된 눈 영역을 잘라 CNN 모델에 입력한다.
+
+먼저 tf.browser.fromPixels()를 이용하여 웹캠 영상을 Tensor 형태로 변환한다.
+
+그다음 slice()를 사용하여 눈 영역만 잘라낸다.
+
+잘라낸 이미지는 tf.image.resizeBilinear()를 사용하여 64×64 크기로 변환한다.
+
+모델 입력을 위해 Batch 차원을 추가한 뒤 eyeModel.predict()를 실행한다.
+
+CNN 모델은 0과 1 사이의 값을 출력한다.
+
+값이 높을수록 눈이 열린 상태일 가능성이 높은 것으로 사용한다.
+
+
+CNN과 EAR 결합
+
+combineResult() 함수는 CNN 모델 결과와 EAR 값을 함께 사용하여 최종 눈 상태를 판단한다.
+
+CNN 결과만 사용하면 조명, 얼굴 각도, 안경 착용, 눈 이미지 Crop 상태 등에 따라 오검출이 발생할 수 있다.
+
+반대로 EAR만 사용하면 개인별 눈 크기나 얼굴 각도에 따라 결과가 달라질 수 있다.
+
+따라서 두 결과를 함께 사용한다.
+
+EAR 값이 0.15보다 낮은 경우에는 눈이 확실하게 감긴 상태로 보고 CLOSED로 판단한다.
+
+CNN도 CLOSED로 판단하고 EAR도 기준값보다 낮으면 CLOSED로 판단한다.
+
+CNN의 CLOSED 판단 신뢰도가 매우 높은 경우에도 CLOSED로 판단한다.
+
+그 외의 경우에는 OPEN으로 판단한다.
+
+
+Temporal Smoothing
+
+smoothState() 함수는 한 프레임의 결과만으로 최종 눈 상태를 결정하지 않도록 하는 기능이다.
+
+최근 5개 프레임의 OPEN / CLOSED 결과를 저장한다.
+
+최근 5개 결과 중 CLOSED가 60% 이상이면 최종적으로 CLOSED로 판단한다.
+
+예를 들어 최근 결과가 다음과 같을 경우
+
+OPEN
+CLOSED
+CLOSED
+OPEN
+CLOSED
+
+CLOSED가 3개이므로 비율은 60%가 된다.
+
+따라서 최종 상태는 CLOSED가 된다.
+
+이 방식을 통해 한두 프레임에서 발생하는 순간적인 오검출을 줄일 수 있다.
+
+
+눈 상태 화면 표시
+
+drawEye() 함수는 검출된 눈 위치를 canvas 위에 표시한다.
+
+눈이 OPEN인 경우 초록색 사각형을 표시한다.
+
+눈이 CLOSED인 경우 빨간색 사각형을 표시한다.
+
+사각형 위에는 OPEN 또는 CLOSED 상태와 현재 EAR 값이 함께 출력된다.
+
+이를 통해 사용자가 실제 분석 결과를 실시간으로 확인할 수 있다.
+
+
+실시간 영상 분석
+
+processFrame() 함수는 전체 프로그램에서 가장 중요한 함수이다.
+
+웹캠의 각 프레임마다 반복적으로 실행되면서 졸음 감지 과정을 수행한다.
+
+먼저 MediaPipe Face Landmarker를 이용하여 현재 영상에서 얼굴 랜드마크를 검출한다.
+
+얼굴이 검출되면 좌우 눈의 EAR 값을 계산한다.
+
+그다음 좌우 눈 영역을 각각 추출한다.
+
+추출된 눈 이미지는 CNN 모델에 입력되어 Open / Closed 확률을 계산한다.
+
+CNN 결과와 EAR 결과를 combineResult() 함수에서 결합한다.
+
+그 결과를 다시 smoothState() 함수에 전달하여 최근 프레임 기준으로 최종 눈 상태를 결정한다.
+
+최종 결과는 canvas 위에 사각형과 텍스트로 표시한다.
+
+
+졸음 상태 판단
+
+좌우 눈이 모두 CLOSED로 판단되면 눈을 감기 시작한 시간을 저장한다.
+
+performance.now()를 사용하여 눈을 감은 시간을 측정한다.
+
+눈을 감은 상태가 2초 미만이면 EYES CLOSED 상태를 표시한다.
+
+양쪽 눈이 2초 이상 계속 CLOSED 상태이면 SLEEPING으로 변경한다.
+
+SLEEPING 상태가 되면 경고음을 시작한다.
+
+눈을 다시 뜨면 closedStart 값을 초기화하고 AWAKE 상태로 돌아간다.
+
+동시에 경고음도 중지한다.
+
+
+얼굴이 검출되지 않는 경우
+
+MediaPipe에서 얼굴이 검출되지 않으면 FACE NOT DETECTED 상태를 표시한다.
+
+이 경우 이전 좌우 눈 상태 기록을 초기화한다.
+
+눈 감김 시간도 초기화한다.
+
+경고음이 실행 중이었다면 경고음을 중지한다.
+
+
+경고음 기능
+
+브라우저의 Web Audio API를 이용하여 별도의 음원 파일 없이 경고음을 생성한다.
+
+initAudio() 함수는 AudioContext를 초기화한다.
+
+beep() 함수에서는 Oscillator를 이용하여 약 900Hz의 소리를 생성한다.
+
+한 번의 경고음은 약 0.25초 동안 재생된다.
+
+startAlarm() 함수는 경고음을 약 700ms 간격으로 반복 실행한다.
+
+stopAlarm() 함수는 반복 재생을 중지한다.
+
+따라서 운전자가 2초 이상 눈을 감고 있으면 반복적으로 경고음이 발생하고, 눈을 뜨면 즉시 경고음이 중지된다.
+
+
+오류 처리
+
+코드에서는 모델 로딩, 영상 처리, 카메라 실행 과정에서 발생할 수 있는 오류를 각각 처리한다.
+
+모델 로딩 오류가 발생하면 MODEL ERROR를 표시한다.
+
+카메라 권한이나 카메라 실행에 문제가 있으면 CAMERA ERROR를 표시한다.
+
+실시간 영상 처리 과정에서 오류가 발생하면 PROCESSING ERROR를 표시한다.
+
+오류 메시지는 info 영역에도 표시하여 문제의 원인을 확인할 수 있도록 한다.
+
+
+전체 동작 순서
+
+웹페이지 실행
+
+→ Start Camera 버튼 비활성화
+
+→ TensorFlow.js 모델 로딩
+
+→ MediaPipe Face Landmarker 로딩
+
+→ 모델 로딩 완료
+
+→ READY 표시
+
+→ Start Camera 버튼 활성화
+
+→ 사용자가 카메라 실행
+
+→ 웹캠 영상 입력
+
+→ 얼굴 랜드마크 검출
+
+→ 좌우 눈 위치 추출
+
+→ 좌우 EAR 계산
+
+→ 눈 이미지 Crop
+
+→ CNN 모델 분석
+
+→ CNN + EAR 결과 결합
+
+→ 최근 5프레임 결과 보정
+
+→ 좌우 눈 Open / Closed 판단
+
+→ 양쪽 눈이 모두 CLOSED인지 확인
+
+→ 눈 감김 시간 측정
+
+→ 2초 이상 감긴 경우 SLEEPING
+
+→ 반복 경고음 발생
+
+→ 눈을 뜨면 AWAKE
+
+→ 경고음 중지
+
+
+사용한 데이터 및 모델 파일
+
+model.json
+
+TensorFlow.js에서 사용할 CNN 모델의 구조 정보가 저장된 파일이다.
+
+group1-shard1of1.bin
+
+학습된 CNN 모델의 실제 Weight 값이 저장된 파일이다.
+
+model.json과 함께 사용한다.
+
+face_landmarker.task
+
+MediaPipe Face Landmarker에서 얼굴 랜드마크를 검출하기 위해 사용하는 모델 파일이다.
+
+best_eye_model.keras
+
+Python TensorFlow/Keras 환경에서 학습하여 저장한 원본 눈 상태 분류 모델이다.
+
+현재 브라우저에서 직접 분석할 때는 TensorFlow.js 형식으로 변환된 model.json과 bin 파일을 사용한다.
+
+
+사용한 오픈소스 및 레퍼런스
+
+1. MediaPipe
+
+Google에서 제공하는 오픈소스 머신러닝 솔루션이다.
+
+본 코드에서는 Face Landmarker를 사용하여 웹캠 영상에서 얼굴과 눈 주변 랜드마크 좌표를 검출하는 데 사용하였다.
+
+MediaPipe:
+https://ai.google.dev/edge/mediapipe/
+
+MediaPipe GitHub:
+https://github.com/google-ai-edge/mediapipe
+
+
+2. MediaPipe Tasks Vision
+
+MediaPipe의 Vision Task 기능을 웹 환경에서 사용할 수 있도록 제공하는 라이브러리이다.
+
+본 코드에서는 FaceLandmarker와 FilesetResolver를 사용하였다.
+
+JavaScript 패키지는 jsDelivr CDN을 통해 불러온다.
+
+사용 버전:
+@mediapipe/tasks-vision 0.10.22-rc.20250304
+
+NPM:
+https://www.npmjs.com/package/@mediapipe/tasks-vision
+
+
+3. TensorFlow.js
+
+Google에서 개발한 JavaScript용 오픈소스 머신러닝 라이브러리이다.
+
+본 코드에서는 브라우저에서 CNN 눈 상태 분류 모델을 로딩하고 실시간 웹캠 이미지에 대해 예측을 수행하는 데 사용하였다.
+
+주요 사용 기능은 다음과 같다.
+
+tf.ready()
+
+tf.loadLayersModel()
+
+tf.browser.fromPixels()
+
+tf.image.resizeBilinear()
+
+tf.tidy()
+
+TensorFlow.js:
+https://www.tensorflow.org/js
+
+GitHub:
+https://github.com/tensorflow/tfjs
+
+사용 버전:
+TensorFlow.js 4.22.0
+
+
+4. Web Audio API
+
+웹브라우저에서 오디오를 생성하고 처리하기 위한 표준 Web API이다.
+
+본 코드에서는 별도의 음원 파일을 사용하지 않고 졸음 경고음을 직접 생성하는 데 사용하였다.
+
+AudioContext, OscillatorNode, GainNode 기능을 이용하여 약 900Hz의 경고음을 만든다.
+
+MDN Web Audio API:
+https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API
+
+
+5. MediaDevices getUserMedia API
+
+웹브라우저에서 사용자의 카메라와 마이크에 접근하기 위한 표준 Web API이다.
+
+본 코드에서는 웹캠 영상을 가져오기 위해 navigator.mediaDevices.getUserMedia()를 사용한다.
+
+오디오는 사용하지 않고 영상만 요청한다.
+
+MDN getUserMedia:
+https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
+
+
+6. Canvas API
+
+HTML canvas 요소에 그래픽을 그리기 위한 Web API이다.
+
+본 코드에서는 웹캠 영상 위에 눈 위치 사각형, OPEN / CLOSED 상태 및 EAR 값을 표시하는 데 사용하였다.
+
+주요 기능은 다음과 같다.
+
+strokeRect()
+
+fillText()
+
+clearRect()
+
+MDN Canvas API:
+https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API
+
+
+7. requestAnimationFrame
+
+브라우저 화면 갱신 주기에 맞춰 반복적으로 함수를 실행할 수 있는 Web API이다.
+
+본 코드에서는 processFrame() 함수를 지속적으로 호출하여 웹캠의 각 프레임을 실시간으로 분석하는 데 사용하였다.
+
+MDN requestAnimationFrame:
+https://developer.mozilla.org/en-US/docs/Web/API/Window/requestAnimationFrame
+
+
+8. EAR(Eye Aspect Ratio)
+
+EAR은 눈 주변 랜드마크의 가로 및 세로 거리를 이용하여 눈의 열림 정도를 계산하는 방법이다.
+
+본 코드에서는 MediaPipe로 얻은 눈 랜드마크를 사용하여 EAR을 계산하고 CNN 결과를 보완한다.
+
+EAR 값이 낮아지면 눈이 감긴 상태일 가능성이 높은 것으로 판단한다.
+
+
+핵심 구현 방식
+
+본 시스템은 하나의 방법만 사용하지 않고 다음 세 가지 방법을 결합하였다.
+
+CNN 기반 눈 Open / Closed 분류
+
++
+
+MediaPipe 랜드마크 기반 EAR 계산
+
++
+
+최근 5개 프레임을 이용한 Temporal Smoothing
+
+CNN은 실제 눈 이미지를 분석하고, EAR은 눈의 형태 변화를 수치로 분석한다.
+
+두 방법을 함께 사용하여 한쪽 방법의 오검출을 다른 방법이 보완하도록 구성하였다.
+
+또한 최근 여러 프레임의 결과를 사용하여 순간적인 눈 깜빡임이나 한 프레임의 잘못된 예측으로 바로 졸음 상태가 되는 것을 방지하였다.
+
+최종적으로 양쪽 눈이 모두 CLOSED로 판단되고 이 상태가 2초 이상 유지되면 SLEEPING 상태로 판단하며, 브라우저에서 반복적인 경고음을 발생시킨다.
+
+사진이나 영상을 파일로 저장하는 기능은 사용하지 않는다.
