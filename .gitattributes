@@ -1,0 +1,14 @@
+* text=auto
+*.md text eol=lf
+*.txt text eol=lf
+*.py text eol=lf
+*.js text eol=lf
+*.html text eol=lf
+*.svg text eol=lf
+*.ipynb text eol=lf
+*.keras binary
+*.task binary
+*.bin binary
+*.jpg binary
+*.jpeg binary
+*.png binary

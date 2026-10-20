@@ -1,5 +1,7 @@
 # CNN + EAR 브라우저 졸음 감지
 
+[프로젝트 홈](../README.md) · [문서 목차](../docs/README.md) · [구현 비교](../docs/PROJECT_VARIANTS.md)
+
 웹캠에서 좌우 눈을 찾아 작은 CNN으로 눈 상태를 분류하고, EAR·최근 프레임·지속 시간을 결합해 경고음을 내는 프로토타입입니다. TensorFlow.js와 MediaPipe가 사용자 브라우저 안에서 동작합니다.
 
 이 폴더는 기존 `Drowsiness_Detection_CNN.ipynb`, `Drowsiness-System/`과 독립된 웹 구현입니다. 기존 128×128 얼굴 모델과 이 폴더의 64×64 눈 모델은 입력·라벨·전처리가 다르므로 교체해서 사용하면 안 됩니다.
